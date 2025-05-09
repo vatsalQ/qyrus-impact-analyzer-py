@@ -1,0 +1,140 @@
+name: "Code Impact Analysis"
+description: "Generates a structured PR diff and calls an external Impact-Analysis API."
+author: "Vatsal Saglani"
+branding:
+  icon: "git-pull-request"
+  color: "purple"
+
+# ---------- INPUTS ----------
+inputs:
+  impact_api_url:
+    description: "Base URL of your Impact-Analysis service (e.g. https://impact.example.com/analyze)"
+    required: true
+  api_access_token:
+    description: "Access token for the Impact-Analysis API"
+    required: true
+  project_id:
+    description: "Project ID recognised by the Impact-Analysis API"
+    required: true
+
+# ---------- OUTPUTS ----------
+outputs:
+  impact_analysis_id:
+    description: "Job ID returned by the Impact-Analysis service"
+
+runs:
+  using: "composite"
+  steps:
+
+    # -------------------------------------------------------------
+    # 0️⃣  Check scopes on the caller-supplied GITHUB_TOKEN
+    #     – fail hard if we lack `contents`
+    #     – expose an output flag (`has_issues_scope`) for later
+    # -------------------------------------------------------------
+    - name: Verify GITHUB_TOKEN scopes
+      id: check-scopes
+      shell: bash
+      run: |
+        GH_REPO="${{ github.repository }}"
+        # HEAD request just to read the X-OAuth-Scopes header
+        SCOPES=$(curl -sI -H "Authorization: Bearer $GITHUB_TOKEN" \
+                    "https://api.github.com/repos/${GH_REPO}" | \
+                 tr -d '\r' | grep -Fi 'X-OAuth-Scopes:' | \
+                 cut -d':' -f2- | tr -d '[:space:]')
+
+        echo "Detected token scopes: $SCOPES"
+
+        # contents: read  ➜  mandatory
+        if [[ "$SCOPES" != *"contents"* ]]; then
+          echo "::error::GITHUB_TOKEN is missing the 'contents' scope. \
+Add 'permissions: contents: read' in your workflow."
+          exit 1
+        fi
+
+        # issues: write  ➜  optional
+        if [[ "$SCOPES" == *"issues"* ]]; then
+          echo "has_issues_scope=true"  >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::GITHUB_TOKEN lacks 'issues: write'. \
+Issue-creation steps will be skipped."
+          echo "has_issues_scope=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    # -------------------------------------------------------------
+    # 1️⃣  Checkout & tooling
+    # -------------------------------------------------------------
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install Python deps
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r "${{ github.action_path }}/requirements.txt"
+
+    # -------------------------------------------------------------
+    # 2️⃣  Diff & metadata generation
+    # -------------------------------------------------------------
+    - name: Detect changed files
+      id: files
+      shell: bash
+      run: |
+        git fetch origin ${{ github.event.pull_request.base.ref }}
+        git diff --name-status origin/${{ github.event.pull_request.base.ref }} HEAD > changed_files.txt
+        echo "Saved changed_files.txt"
+
+    - name: Generate structured diff JSON
+      shell: bash
+      env:
+        SOURCE_BRANCH: ${{ github.head_ref }}
+        TARGET_BRANCH: ${{ github.base_ref }}
+      run: |
+        python "${{ github.action_path }}/generate_structured_diff.py"
+
+    - name: Expose PR metadata
+      shell: bash
+      run: |
+        echo "PR_NUMBER=${{ github.event.pull_request.number }}"   >> $GITHUB_ENV
+        echo "PR_TITLE=${{ github.event.pull_request.title }}"     >> $GITHUB_ENV
+        echo "PR_AUTHOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+        echo "REPO_FULL_NAME=${{ github.repository }}"             >> $GITHUB_ENV
+
+    # -------------------------------------------------------------
+    # 3️⃣  Call external Impact-Analysis API
+    # -------------------------------------------------------------
+    - name: Trigger Impact-Analysis API
+      id: impact
+      shell: bash
+      env:
+        IMPACT_API_URL: ${{ inputs.impact_api_url }}
+        API_ACCESS_TOKEN: ${{ inputs.api_access_token }}
+        PROJECT_ID: ${{ inputs.project_id }}
+        SOURCE_BRANCH: ${{ github.head_ref }}
+        TARGET_BRANCH: ${{ github.base_ref }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        python "${{ github.action_path }}/trigger_impact_analysis.py"
+
+    # - name: Export output
+    #   shell: bash
+    #   run: |
+    #     if [[ -f impact_analysis_job.txt ]]; then
+    #       ID=$(cat impact_analysis_job.txt)
+    #       echo "impact_analysis_id=${ID}" >> "$GITHUB_OUTPUT"
+    #     fi
+
+    # # -------------------------------------------------------------
+    # # 4️⃣  (Future) Create a follow-up GitHub Issue – gated by scope
+    # # -------------------------------------------------------------
+    # - name: Create follow-up Issue
+    #   if: steps.check-scopes.outputs.has_issues_scope == 'true'
+    #   shell: bash
+    #   run: |
+    #     echo "Placeholder: create an Issue via gh-api / REST / GraphQL"
