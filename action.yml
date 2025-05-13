@@ -29,7 +29,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-
     # -------------------------------------------------------------
     # 0️⃣  Check scopes on the caller-supplied GITHUB_TOKEN
     #     – fail hard if we lack `contents`
@@ -58,14 +57,10 @@ runs:
         if [[ "$SCOPES" == *"issues"* ]]; then
           echo "has_issues_scope=true"  >> "$GITHUB_OUTPUT"
         else
-          echo "::warning::GITHUB_TOKEN lacks 'issues: write'. \
-Issue-creation steps will be skipped."
+          echo "::warning::GITHUB_TOKEN lacks 'issues: write'. Issue-creation steps will be skipped."
           echo "has_issues_scope=false" >> "$GITHUB_OUTPUT"
         fi
 
-    # -------------------------------------------------------------
-    # 1️⃣  Checkout & tooling
-    # -------------------------------------------------------------
     - name: Checkout source
       uses: actions/checkout@v4
       with:
