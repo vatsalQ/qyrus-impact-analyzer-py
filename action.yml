@@ -50,8 +50,7 @@ runs:
 
         # contents: read  ➜  mandatory
         if [[ "$SCOPES" != *"contents"* ]]; then
-          echo "::error::GITHUB_TOKEN is missing the 'contents' scope. \
-Add 'permissions: contents: read' in your workflow."
+          echo "::error::GITHUB_TOKEN is missing the 'contents' scope. Add 'permissions: contents: read' in your workflow."
           exit 1
         fi
 
