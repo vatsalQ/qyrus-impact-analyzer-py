@@ -34,32 +34,32 @@ runs:
     #     – fail hard if we lack `contents`
     #     – expose an output flag (`has_issues_scope`) for later
     # -------------------------------------------------------------
-    - name: Verify GITHUB_TOKEN scopes
-      id: check-scopes
-      shell: bash
-      run: |
-        GH_REPO="${{ github.repository }}"
-        # HEAD request just to read the X-OAuth-Scopes header
-        SCOPES=$(curl -sI -H "Authorization: Bearer ${{ inputs.github_token }}" \
-                    "https://api.github.com/repos/${GH_REPO}" | \
-                 tr -d '\r' | grep -Fi 'X-OAuth-Scopes:' | \
-                 cut -d':' -f2- | tr -d '[:space:]')
+    # - name: Verify GITHUB_TOKEN scopes
+    #   id: check-scopes
+    #   shell: bash
+    #   run: |
+    #     GH_REPO="${{ github.repository }}"
+    #     # HEAD request just to read the X-OAuth-Scopes header
+    #     SCOPES=$(curl -sI -H "Authorization: Bearer ${{ inputs.github_token }}" \
+    #                 "https://api.github.com/repos/${GH_REPO}" | \
+    #              tr -d '\r' | grep -Fi 'X-OAuth-Scopes:' | \
+    #              cut -d':' -f2- | tr -d '[:space:]')
 
-        echo "Detected token scopes: $SCOPES"
+    #     echo "Detected token scopes: $SCOPES"
 
-        # contents: read  ➜  mandatory
-        if [[ "$SCOPES" != *"contents"* ]]; then
-          echo "::error::GITHUB_TOKEN is missing the 'contents' scope. Add 'permissions: contents: read' in your workflow."
-          exit 1
-        fi
+    #     # contents: read  ➜  mandatory
+    #     if [[ "$SCOPES" != *"contents"* ]]; then
+    #       echo "::error::GITHUB_TOKEN is missing the 'contents' scope. Add 'permissions: contents: read' in your workflow."
+    #       exit 1
+    #     fi
 
-        # issues: write  ➜  optional
-        if [[ "$SCOPES" == *"issues"* ]]; then
-          echo "has_issues_scope=true"  >> "$GITHUB_OUTPUT"
-        else
-          echo "::warning::GITHUB_TOKEN lacks 'issues: write'. Issue-creation steps will be skipped."
-          echo "has_issues_scope=false" >> "$GITHUB_OUTPUT"
-        fi
+    #     # issues: write  ➜  optional
+    #     if [[ "$SCOPES" == *"issues"* ]]; then
+    #       echo "has_issues_scope=true"  >> "$GITHUB_OUTPUT"
+    #     else
+    #       echo "::warning::GITHUB_TOKEN lacks 'issues: write'. Issue-creation steps will be skipped."
+    #       echo "has_issues_scope=false" >> "$GITHUB_OUTPUT"
+    #     fi
 
     - name: Checkout source
       uses: actions/checkout@v4
@@ -77,9 +77,6 @@ runs:
         python -m pip install --upgrade pip
         pip install -r "${{ github.action_path }}/requirements.txt"
 
-    # -------------------------------------------------------------
-    # 2️⃣  Diff & metadata generation
-    # -------------------------------------------------------------
     - name: Detecting Changes
       id: files
       shell: bash
