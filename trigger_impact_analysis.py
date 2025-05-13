@@ -21,6 +21,9 @@ def main():
     pr_title = os.environ.get('PR_TITLE')
     pr_author = os.environ.get('PR_AUTHOR')
     repo_full_name = os.environ.get('REPO_FULL_NAME')
+    print(f"REPO FULL NAME: {repo_full_name}")
+    repo_url = f"https://github.com/{repo_full_name}"
+    print(f"REPO URL: {repo_url}")
 
     # Read structured diff from file
     try:
@@ -52,20 +55,35 @@ def main():
         print("Error: Structured diff is empty or invalid")
         sys.exit(1)
 
-    # Build request payload
+    # TODO: Remove older payload: Build request payload
+    # payload = {
+    #     'job_id': project_id,
+    #     'source_branch': source_branch,
+    #     'target_branch': target_branch,
+    #     'structured_diff':
+    #     structured_diff,  # Use structured diff instead of raw diff
+    #     'github_token': github_token,
+    #     'pr_metadata': {
+    #         'pr_number': pr_number,
+    #         'pr_title': pr_title,
+    #         'pr_author': pr_author,
+    #         'repository': repo_full_name
+    #     }
+    # }
+
     payload = {
-        'job_id': project_id,
+        'project_id': project_id,
         'source_branch': source_branch,
         'target_branch': target_branch,
-        'structured_diff':
-        structured_diff,  # Use structured diff instead of raw diff
+        'structured_diff': structured_diff,
         'github_token': github_token,
         'pr_metadata': {
             'pr_number': pr_number,
             'pr_title': pr_title,
             'pr_author': pr_author,
             'repository': repo_full_name
-        }
+        },
+        "repo_url": repo_url
     }
 
     # Headers with custom access token
