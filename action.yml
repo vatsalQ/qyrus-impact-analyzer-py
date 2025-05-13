@@ -16,6 +16,10 @@ inputs:
   project_id:
     description: "Project ID recognised by the Impact-Analysis API"
     required: true
+  github_token:
+    description: "GitHub token with appropriate scopes"
+    required: true
+    default: ${{ github.token }}
 
 # ---------- OUTPUTS ----------
 outputs:
@@ -37,7 +41,7 @@ runs:
       run: |
         GH_REPO="${{ github.repository }}"
         # HEAD request just to read the X-OAuth-Scopes header
-        SCOPES=$(curl -sI -H "Authorization: Bearer $GITHUB_TOKEN" \
+        SCOPES=$(curl -sI -H "Authorization: Bearer ${{ inputs.github_token }}" \
                     "https://api.github.com/repos/${GH_REPO}" | \
                  tr -d '\r' | grep -Fi 'X-OAuth-Scopes:' | \
                  cut -d':' -f2- | tr -d '[:space:]')
@@ -82,7 +86,7 @@ Issue-creation steps will be skipped."
     # -------------------------------------------------------------
     # 2️⃣  Diff & metadata generation
     # -------------------------------------------------------------
-    - name: Detect changed files
+    - name: Detecting Changes
       id: files
       shell: bash
       run: |
@@ -90,26 +94,21 @@ Issue-creation steps will be skipped."
         git diff --name-status origin/${{ github.event.pull_request.base.ref }} HEAD > changed_files.txt
         echo "Saved changed_files.txt"
 
-    - name: Generate structured diff JSON
+    - name: Create Diff
       shell: bash
       env:
         SOURCE_BRANCH: ${{ github.head_ref }}
         TARGET_BRANCH: ${{ github.base_ref }}
       run: |
         python "${{ github.action_path }}/generate_structured_diff.py"
-
-    - name: Expose PR metadata
+    - name: Fetch PR metadata
       shell: bash
       run: |
         echo "PR_NUMBER=${{ github.event.pull_request.number }}"   >> $GITHUB_ENV
         echo "PR_TITLE=${{ github.event.pull_request.title }}"     >> $GITHUB_ENV
         echo "PR_AUTHOR=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
         echo "REPO_FULL_NAME=${{ github.repository }}"             >> $GITHUB_ENV
-
-    # -------------------------------------------------------------
-    # 3️⃣  Call external Impact-Analysis API
-    # -------------------------------------------------------------
-    - name: Trigger Impact-Analysis API
+    - name: Trigger Qyrus Impact Analyzer
       id: impact
       shell: bash
       env:
@@ -118,7 +117,7 @@ Issue-creation steps will be skipped."
         PROJECT_ID: ${{ inputs.project_id }}
         SOURCE_BRANCH: ${{ github.head_ref }}
         TARGET_BRANCH: ${{ github.base_ref }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
       run: |
         python "${{ github.action_path }}/trigger_impact_analysis.py"
 
