@@ -89,7 +89,8 @@ def main():
     # Headers with custom access token
     headers = {
         'Content-Type': 'application/json',
-        'X-API-Access-Token': api_access_token
+        'X-API-Access-Token': api_access_token,
+        'Authorization': f'Bearer {api_access_token}'
     }
 
     # Send request to Impact Analyzer API
