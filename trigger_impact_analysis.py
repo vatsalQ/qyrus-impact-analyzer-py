@@ -12,6 +12,14 @@ def main():
     impact_api_url = os.environ.get('IMPACT_API_URL')
     api_access_token = os.environ.get('API_ACCESS_TOKEN')
     project_id = os.environ.get('PROJECT_ID')
+
+    # New optional/required envs
+    workspace_name = os.environ.get('WORKSPACE_NAME')
+    suite_name = os.environ.get('SUITE_NAME')
+    environment_name = os.environ.get('ENVIRONMENT_NAME')
+    username = os.environ.get('USERNAME')
+    password = os.environ.get('PASSWORD')
+
     source_branch = os.environ.get('SOURCE_BRANCH')
     target_branch = os.environ.get('TARGET_BRANCH')
     github_token = os.environ.get('GITHUB_TOKEN')
@@ -35,44 +43,46 @@ def main():
     except Exception as e:
         print(f"Error reading structured diff file: {e}")
         sys.exit(1)
-
-    # Validate required parameters
+        
+        
+    # Base required parameters
     required_params = {
         'IMPACT_API_URL': impact_api_url,
         'API_ACCESS_TOKEN': api_access_token,
-        'PROJECT_ID': project_id,
         'SOURCE_BRANCH': source_branch,
         'TARGET_BRANCH': target_branch,
     }
 
     for param_name, param_value in required_params.items():
         if not param_value:
-            print(
-                f"Error: Missing required environment variable: {param_name}")
+            print(f"Error: Missing required environment variable: {param_name}")
             sys.exit(1)
+
+  
+    if not project_id and not workspace_name:
+        print("Error: Must provide either PROJECT_ID or WORKSPACE_NAME")
+        sys.exit(1)
+
+    if workspace_name:
+        workspace_required = {
+            'WORKSPACE_NAME': workspace_name,
+            'SUITE_NAME': suite_name,
+            'ENVIRONMENT_NAME': environment_name,
+            'USERNAME': username,
+            'PASSWORD': password
+        }
+        for param_name, param_value in workspace_required.items():
+            if not param_value:
+                print(f"Error: Missing required workspace environment variable: {param_name}")
+                sys.exit(1)
+
 
     if not structured_diff or not structured_diff.get('files'):
         print("Error: Structured diff is empty or invalid")
         sys.exit(1)
 
-    # TODO: Remove older payload: Build request payload
-    # payload = {
-    #     'job_id': project_id,
-    #     'source_branch': source_branch,
-    #     'target_branch': target_branch,
-    #     'structured_diff':
-    #     structured_diff,  # Use structured diff instead of raw diff
-    #     'github_token': github_token,
-    #     'pr_metadata': {
-    #         'pr_number': pr_number,
-    #         'pr_title': pr_title,
-    #         'pr_author': pr_author,
-    #         'repository': repo_full_name
-    #     }
-    # }
-
+    # Construct payload with all environment variables included
     payload = {
-        'project_id': project_id,
         'source_branch': source_branch,
         'target_branch': target_branch,
         'structured_diff': structured_diff,
@@ -83,7 +93,13 @@ def main():
             'pr_author': pr_author,
             'repository': repo_full_name
         },
-        "repo_url": repo_url
+        'repo_url': repo_url,
+        'workspace_name': workspace_name,
+        'suite_name': suite_name,
+        'environment_name': environment_name,
+        'api_access_token': api_access_token,
+        'username': username,
+        'password': password
     }
 
     # Headers with custom access token
@@ -105,12 +121,10 @@ def main():
         )
         elapsed_time = time.time() - start_time
 
-        # Print status code and timing
         print(
             f"Request completed in {elapsed_time:.2f}s with status code {response.status_code}"
         )
 
-        # Check response
         if response.status_code in [200, 201, 202]:
             try:
                 result = response.json()
@@ -120,11 +134,9 @@ def main():
                 )
                 print(f"Response: {json.dumps(result, indent=2)}")
 
-                # Save job ID to output file for potential later use
                 with open('impact_analysis_job.txt', 'w') as f:
                     f.write(job_id)
 
-                # Output for GitHub Actions
                 print(f"::set-output name=impact_analysis_id::{job_id}")
             except json.JSONDecodeError:
                 print("Warning: Could not parse response as JSON")

@@ -6,6 +6,21 @@ branding:
   color: "purple"
 
 # ---------- INPUTS ----------
+# inputs:
+#   impact_api_url:
+#     description: "Base URL of your Impact-Analysis service (e.g. https://impact.example.com/analyze)"
+#     required: true
+#   api_access_token:
+#     description: "Access token for the Impact-Analysis API"
+#     required: true
+#   project_id:
+#     description: "Project ID recognised by the Impact-Analysis API"
+#     required: true
+#   github_token:
+#     description: "GitHub token with appropriate scopes"
+#     required: true
+#     default: ${{ github.token }}
+
 inputs:
   impact_api_url:
     description: "Base URL of your Impact-Analysis service (e.g. https://impact.example.com/analyze)"
@@ -14,12 +29,28 @@ inputs:
     description: "Access token for the Impact-Analysis API"
     required: true
   project_id:
-    description: "Project ID recognised by the Impact-Analysis API"
-    required: true
+    description: "Project ID recognised by the Impact-Analysis API (optional if using workspace mode)"
+    required: false
+  workspace_name:
+    description: "Workspace name for workspace mode (required if PROJECT_ID not provided)"
+    required: false
+  suite_name:
+    description: "Suite name (required if using workspace mode)"
+    required: false
+  environment_name:
+    description: "Environment name (required if using workspace mode)"
+    required: false
+  username:
+    description: "Workspace username (required if using workspace mode)"
+    required: false
+  password:
+    description: "Workspace password (required if using workspace mode)"
+    required: false
   github_token:
     description: "GitHub token with appropriate scopes"
     required: true
     default: ${{ github.token }}
+
 
 # ---------- OUTPUTS ----------
 outputs:
@@ -106,6 +137,11 @@ runs:
         IMPACT_API_URL: ${{ inputs.impact_api_url }}
         API_ACCESS_TOKEN: ${{ inputs.api_access_token }}
         PROJECT_ID: ${{ inputs.project_id }}
+        WORKSPACE_NAME: ${{ inputs.workspace_name }}
+        SUITE_NAME: ${{ inputs.suite_name }}
+        ENVIRONMENT_NAME: ${{ inputs.environment_name }}
+        USERNAME: ${{ inputs.username }}
+        PASSWORD: ${{ inputs.password }}
         SOURCE_BRANCH: ${{ github.head_ref }}
         TARGET_BRANCH: ${{ github.base_ref }}
         GITHUB_TOKEN: ${{ inputs.github_token }}

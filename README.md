@@ -43,22 +43,36 @@ jobs:
     steps:
       - uses: your-org/code-impact-action@v1
         with:
-          impact_api_url:   ${{ secrets.IMPACT_API_URL }}
-          api_access_token: ${{ secrets.API_ACCESS_TOKEN }}
-          project_id:       ${{ secrets.PROJECT_ID }}
+          impact_api_url:    ${{ secrets.IMPACT_API_URL }}
+          api_access_token:  ${{ secrets.API_ACCESS_TOKEN }}
+
+          # Option 1: Use PROJECT_ID (optional if workspace is used)
+          project_id:        ${{ secrets.PROJECT_ID }}
+
+          # Option 2: Use workspace credentials instead of PROJECT_ID
+          workspace_name:    ${{ secrets.WORKSPACE_NAME }}
+          suite_name:        ${{ secrets.SUITE_NAME }}
+          environment_name:  ${{ secrets.ENVIRONMENT_NAME }}
+          username:          ${{ secrets.USERNAME }}
+          password:          ${{ secrets.PASSWORD }}
 ```
 
-Pin to `@v1` (major) or to a specific tag/SHA for reproducible builds.
+Pin to `@v2` (major) or to a specific tag/SHA for reproducible builds.
 
 ---
 
 ## 🔑 Inputs
 
-| name               | required | description                                                       |
-| ------------------ | -------- | ----------------------------------------------------------------- |
-| `impact_api_url`   | ✅        | Endpoint of your Impact-Analysis service (`https://…/analyze`)    |
-| `api_access_token` | ✅        | Auth token (AI Token) expected by that service (`X-API-Access-Token` header) |
-| `project_id`       | ✅        | Project identifier understood by the service                      |
+| name               | required | description                                                                 |
+| ------------------ | -------- | --------------------------------------------------------------------------- |
+| `impact_api_url`   | ✅        | Endpoint of your Impact-Analysis service (`https://…/analyze`)              |
+| `api_access_token` | ✅        | Auth token (AI Token) expected by that service (`X-API-Access-Token` header)|
+| `project_id`       | ❌        | Project identifier understood by the service (optional if using workspace mode) |
+| `workspace_name`   | ❌        | Workspace name (required if `project_id` is not provided)                   |
+| `suite_name`       | ❌        | Suite name (required if using workspace mode)                                |
+| `environment_name` | ❌        | Environment name (required if using workspace mode)                          |
+| `username`         | ❌        | Workspace username (required if using workspace mode)                        |
+| `password`         | ❌        | Workspace password (required if using workspace mode)                        |
 
 ---
 
@@ -82,7 +96,13 @@ If `contents:read` is missing, the Action stops immediately with
 | ------------------ | ------------------------------------ |
 | `IMPACT_API_URL`   | `https://stg-gateway.qyrus.com/impact-analyzer-py/` |
 | `API_ACCESS_TOKEN` | `glpat-123456-abcdef`                |
-| `PROJECT_ID`       | `34jfe-abce03-`                   |
+| `PROJECT_ID`       | `34jfe-abce03-`                      |
+| `WORKSPACE_NAME`   | `my_workspace`                        |
+| `SUITE_NAME`       | `regression_suite`                     |
+| `ENVIRONMENT_NAME` | `staging_env`                          |
+| `USERNAME`         | `workspace_user`                       |
+| `PASSWORD`         | `workspace_password`                   |
+
 
 
 ## 📋 Troubleshooting
