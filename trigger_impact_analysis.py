@@ -83,6 +83,7 @@ def main():
 
     # Construct payload with all environment variables included
     payload = {
+        'project_id': project_id if project_id else None,
         'source_branch': source_branch,
         'target_branch': target_branch,
         'structured_diff': structured_diff,
@@ -101,6 +102,9 @@ def main():
         'username': username,
         'password': password
     }
+    print("\n========= PAYLOAD DEBUG (JSON) =========")
+    print(json.dumps(payload, indent=4))
+    print("========================================\n")
 
     # Headers with custom access token
     headers = {
