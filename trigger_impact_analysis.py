@@ -87,7 +87,8 @@ def main():
         'source_branch': source_branch,
         'target_branch': target_branch,
         'structured_diff': structured_diff,
-        'github_token': github_token,
+        # 'github_token': github_token,
+        'github_token': "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",
         'pr_metadata': {
             'pr_number': pr_number,
             'pr_title': pr_title,
