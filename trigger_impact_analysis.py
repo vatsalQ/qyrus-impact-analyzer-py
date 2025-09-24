@@ -115,7 +115,7 @@ def main():
 
     # Send request to Impact Analyzer API
     try:
-        print(f"Sending impact analysis request to {impact_api_url}")
+        print(f"Sending impact analysis v2 request to {impact_api_url}")
         start_time = time.time()
         response = requests.post(
             impact_api_url,
