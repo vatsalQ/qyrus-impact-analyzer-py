@@ -1,24 +1,21 @@
-
-
-
 # Qyrus Impact Analyzer – GitHub Action
 
-Generate a **structured diff** for every pull-request, post it to  **Qyrus Impact Analyzer** to check impact of the changes on your overall test repository.
+Generates a **full git diff** for every pull-request and posts it to **Qyrus Impact Analyzer** to check the impact of changes on your overall test repository.
 
 ![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Qyrus%20%20Impact%20Analyzer-neon)
 
 ---
 
-## ✨ What it does
+## ✨ What it does (v3)
 
-1. Verifies the scopes on the `GITHUB_TOKEN`
-   • **fails** if it can’t read repo contents
-   • **warns** if it can’t write Issues
-2. `git diff`s PR **base ↔ head** and builds `structured_diff.json`
-3. Captures PR metadata (number, title, author, repo)
-4. Calls **Qyrus Impact-Analysis API**
-5. Outputs the remote **`impact_analysis_id`**
-6. *Optional* – opens a GitHub Issue that summarises the analysis when the token has `issues:write`
+1. Checks out the repository with full history
+2. Generates a **full git diff** between the PR base and head branches
+3. Extracts commit IDs (SHAs) for both branches
+4. Captures PR metadata (number, title, author, repository)
+5. Sends the diff, commit IDs, and metadata to **Qyrus Impact-Analysis API** with the new v3 payload format
+6. Outputs the remote **`impact_analysis_id`** for tracking the analysis job
+
+**Note:** v3 uses a simplified payload structure. The payload includes repository, branch, changes (full diff), commit IDs, and optional integration fields for QAPI, Qyrus, Web, Mobile, and Desktop platforms.
 
 ---
 
@@ -41,7 +38,7 @@ jobs:
       issues:   write     # optional – enables the “create Issue” step
 
     steps:
-      - uses: your-org/code-impact-action@v1
+      - uses: your-org/code-impact-action@v3
         with:
           impact_api_url:    ${{ secrets.IMPACT_API_URL }}
           api_access_token:  ${{ secrets.API_ACCESS_TOKEN }}
@@ -57,7 +54,16 @@ jobs:
           password:          ${{ secrets.PASSWORD }}
 ```
 
-Pin to `@v2` (major) or to a specific tag/SHA for reproducible builds.
+Pin to `@v3` (major) or to a specific tag/SHA for reproducible builds.
+
+### What's New in v3?
+
+- **Full Git Diff**: Generates a complete git diff string instead of structured diff JSON
+- **Simplified Payload**: New payload structure matching the `ImpactRequest` model
+- **Commit IDs**: Includes commit SHAs for both source and target branches
+- **Multiple Platform Support**: Optional fields for Web, Mobile, and Desktop test integrations
+- **Qyrus Integration**: Direct support for Qyrus API token and team name
+- **Backward Compatible**: Still supports QAPI workspace credentials (mapped to new field names)
 
 ---
 
@@ -66,13 +72,16 @@ Pin to `@v2` (major) or to a specific tag/SHA for reproducible builds.
 | name               | required | description                                                                 |
 | ------------------ | -------- | --------------------------------------------------------------------------- |
 | `impact_api_url`   | ✅        | Endpoint of your Impact-Analysis service (`https://…/analyze`)              |
-| `api_access_token` | ✅        | Auth token (AI Token) expected by that service (`X-API-Access-Token` header)|
-| `project_id`       | ❌        | Project identifier understood by the service (optional if using workspace mode) |
-| `workspace_name`   | ❌        | Workspace name (required if `project_id` is not provided)                   |
-| `suite_name`       | ❌        | Suite name (required if using workspace mode)                                |
-| `environment_name` | ❌        | Environment name (required if using workspace mode)                          |
-| `username`         | ❌        | Workspace username (required if using workspace mode)                        |
-| `password`         | ❌        | Workspace password (required if using workspace mode)                        |
+| `api_access_token` | ✅        | Auth token expected by that service (`X-API-Access-Token` header)           |
+| `github_token`     | ✅        | GitHub token with appropriate scopes (defaults to `${{ github.token }}`)    |
+| `project_id`       | ❌        | Project identifier (optional if using workspace mode)                        |
+| `workspace_name`   | ❌        | QAPI workspace name (required if `project_id` is not provided)             |
+| `suite_name`       | ❌        | QAPI suite name (required if using workspace mode)                           |
+| `environment_name` | ❌        | QAPI environment name (required if using workspace mode)                      |
+| `username`         | ❌        | QAPI workspace username (required if using workspace mode)                   |
+| `password`         | ❌        | QAPI workspace password (required if using workspace mode)                   |
+
+**Note:** The action automatically generates the git diff and commit IDs from the PR branches. No additional configuration needed for these fields.
 
 ---
 
@@ -109,8 +118,31 @@ If `contents:read` is missing, the Action stops immediately with
 
 | symptom                                              | likely cause / fix                                     |
 | ---------------------------------------------------- | ------------------------------------------------------ |
-| `Token scopes: … (no contents)` → workflow **fails** | Add `permissions: contents: read`                      |
-| `::warning::GITHUB_TOKEN lacks 'issues: write'`      | Issue creation skipped; add `issues: write` if desired |
+| `Error: Full git diff is empty`                      | Ensure branches exist and have differences             |
+| `Error: Could not get commit IDs`                    | Verify branch names are correct and accessible          |
+| `Missing required environment variable`               | Check that all required inputs are provided            |
 | API call returns 401 / 403                           | Check `api_access_token`, CORS, or endpoint URL        |
+| API call returns 400                                 | Verify payload structure matches v3 `ImpactRequest` model |
+
+## 📦 Payload Structure (v3)
+
+The action sends a payload with the following structure:
+
+```json
+{
+  "repository": "org/repo",
+  "branch": "feature-branch",
+  "changes": "full git diff string...",
+  "commit_ids": "source_commit,target_commit",
+  "job_id": "12345",
+  "github_token": "...",
+  "qapi_username": "...",
+  "qapi_password": "...",
+  "qapi_workspace_name": "...",
+  "qapi_suite_name": "...",
+  "qapi_environment_name": "..."
+}
+```
+
 
 

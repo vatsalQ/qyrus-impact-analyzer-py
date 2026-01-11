@@ -1,5 +1,5 @@
 name: "Code Impact Analysis"
-description: "Generates a structured PR diff and calls an external Impact-Analysis API."
+description: "Generates a full git diff for PR changes and calls the Qyrus Impact-Analysis API (v3)."
 author: "Vatsal Saglani"
 branding:
   icon: "git-pull-request"
