@@ -71,12 +71,16 @@ def main():
             'SUITE_NAME': suite_name,
             'ENVIRONMENT_NAME': environment_name,
             'USERNAME': username,
-            'PASSWORD': password
+            # 'PASSWORD': password
         }
         for param_name, param_value in workspace_required.items():
             if not param_value:
                 print(f"Error: Missing required workspace environment variable: {param_name}")
                 sys.exit(1)
+        
+        if not api_token and not password:
+            print("Error: Must provide either QAPI_API_TOKEN or PASSWORD")
+            sys.exit(1)
 
 
     if not structured_diff or not structured_diff.get('files'):
