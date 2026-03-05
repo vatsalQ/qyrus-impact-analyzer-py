@@ -17,8 +17,9 @@ def main():
     workspace_name = os.environ.get('WORKSPACE_NAME')
     suite_name = os.environ.get('SUITE_NAME')
     environment_name = os.environ.get('ENVIRONMENT_NAME')
-    username = os.environ.get('USERNAME')
-    password = os.environ.get('PASSWORD')
+    username = os.environ.get('USERNAME', '')
+    password = os.environ.get('PASSWORD', '')
+    api_token = os.environ.get('QAPI_API_TOKEN', '')
 
     source_branch = os.environ.get('SOURCE_BRANCH')
     target_branch = os.environ.get('TARGET_BRANCH')
@@ -32,6 +33,7 @@ def main():
     print(f"REPO FULL NAME: {repo_full_name}")
     repo_url = f"https://github.com/{repo_full_name}"
     print(f"REPO URL: {repo_url}")
+
 
     # Read structured diff from file
     try:
@@ -100,7 +102,8 @@ def main():
         'environment_name': environment_name,
         'api_access_token': api_access_token,
         'username': username,
-        'password': password
+        'password': password,
+        "api_token": api_token
     }
     print("\n========= PAYLOAD DEBUG (JSON) =========")
     print(json.dumps(payload, indent=4))
