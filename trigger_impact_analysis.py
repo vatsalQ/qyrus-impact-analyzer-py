@@ -7,6 +7,24 @@ import requests
 import time
 
 
+def _parse_bool(value):
+    if value is None:
+        return False
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _redact_sensitive(payload):
+    """Return a copy safe for logs (secrets masked)."""
+    redacted = json.loads(json.dumps(payload))
+    sensitive_keys = {"api_access_token", "password", "api_token", "github_token"}
+    for key in sensitive_keys:
+        if key in redacted and redacted[key]:
+            redacted[key] = "***REDACTED***"
+    if redacted.get("business_context", {}).get("connector_config", {}).get("api_token"):
+        redacted["business_context"]["connector_config"]["api_token"] = "***REDACTED***"
+    return redacted
+
+
 def main():
     # Get environment variables
     impact_api_url = os.environ.get('IMPACT_API_URL')
@@ -20,6 +38,14 @@ def main():
     username = os.environ.get('USERNAME', '')
     password = os.environ.get('PASSWORD', '')
     api_token = os.environ.get('QAPI_API_TOKEN', '')
+    business_docs_enabled = _parse_bool(os.environ.get('BUSINESS_DOCS_ENABLED', 'false'))
+    business_docs_source = os.environ.get('BUSINESS_DOCS_SOURCE', 'confluence')
+    business_doc_refs_raw = os.environ.get('BUSINESS_DOC_REFS', '')
+    business_docs_mode = os.environ.get('BUSINESS_DOCS_MODE', 'semantic_validation')
+    confluence_base_url = os.environ.get('CONFLUENCE_BASE_URL', '')
+    confluence_username = os.environ.get('CONFLUENCE_USERNAME', '')
+    confluence_api_token = os.environ.get('CONFLUENCE_API_TOKEN', '')
+    confluence_output_format = os.environ.get('CONFLUENCE_OUTPUT_FORMAT', 'markdown')
 
     source_branch = os.environ.get('SOURCE_BRANCH')
     target_branch = os.environ.get('TARGET_BRANCH')
@@ -87,6 +113,51 @@ def main():
         print("Error: Structured diff is empty or invalid")
         sys.exit(1)
 
+    business_context = None
+    if business_docs_enabled:
+        if business_docs_mode not in ('reference_only', 'semantic_validation'):
+            print("Error: BUSINESS_DOCS_MODE must be reference_only or semantic_validation")
+            sys.exit(1)
+
+        documents = []
+        if business_doc_refs_raw:
+            try:
+                documents = json.loads(business_doc_refs_raw)
+            except json.JSONDecodeError:
+                print("Error: BUSINESS_DOC_REFS must be a valid JSON array")
+                sys.exit(1)
+            if not isinstance(documents, list):
+                print("Error: BUSINESS_DOC_REFS must be a JSON array")
+                sys.exit(1)
+
+        business_context = {
+            "enabled": True,
+            "source": business_docs_source,
+            "mode": business_docs_mode,
+            "documents": documents,
+        }
+
+        if business_docs_source == "confluence":
+            missing_confluence = []
+            if not confluence_base_url:
+                missing_confluence.append("CONFLUENCE_BASE_URL")
+            if not confluence_username:
+                missing_confluence.append("CONFLUENCE_USERNAME")
+            if not confluence_api_token:
+                missing_confluence.append("CONFLUENCE_API_TOKEN")
+            if missing_confluence:
+                print(
+                    "Error: Missing required Confluence environment variables: "
+                    + ", ".join(missing_confluence)
+                )
+                sys.exit(1)
+            business_context["connector_config"] = {
+                "base_url": confluence_base_url,
+                "username": confluence_username,
+                "api_token": confluence_api_token,
+                "output_format": confluence_output_format,
+            }
+
     # Construct payload with all environment variables included
     payload = {
         'project_id': project_id if project_id else None,
@@ -109,8 +180,11 @@ def main():
         'password': password,
         "api_token": api_token
     }
+    if business_context:
+        payload["business_context"] = business_context
+
     print("\n========= PAYLOAD DEBUG (JSON) =========")
-    print(json.dumps(payload, indent=4))
+    print(json.dumps(_redact_sensitive(payload), indent=4))
     print("========================================\n")
 
     # Headers with custom access token

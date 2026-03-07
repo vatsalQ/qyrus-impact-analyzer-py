@@ -49,6 +49,34 @@ inputs:
   api_token:
     description: "Qyrus API token (alternative to password in workspace mode)"
     required: false
+  business_docs_enabled:
+    description: "Whether to include business document references for semantic analysis"
+    required: false
+    default: "false"
+  business_docs_source:
+    description: "Source of business documents (currently supports confluence)"
+    required: false
+    default: "confluence"
+  business_doc_refs:
+    description: "JSON array of business document references"
+    required: false
+  business_docs_mode:
+    description: "How business docs should be used: reference_only or semantic_validation"
+    required: false
+    default: "semantic_validation"
+  confluence_base_url:
+    description: "Confluence base URL, e.g. https://your-domain.atlassian.net/wiki"
+    required: false
+  confluence_username:
+    description: "Confluence username or Atlassian email"
+    required: false
+  confluence_api_token:
+    description: "Confluence API token"
+    required: false
+  confluence_output_format:
+    description: "Confluence retrieval format: storage, clean, or markdown"
+    required: false
+    default: "markdown"
   github_token:
     description: "GitHub token with appropriate scopes"
     required: true
@@ -146,6 +174,14 @@ runs:
         USERNAME: ${{ inputs.username }}
         PASSWORD: ${{ inputs.password }}
         QAPI_API_TOKEN: ${{ inputs.api_token }}
+        BUSINESS_DOCS_ENABLED: ${{ inputs.business_docs_enabled }}
+        BUSINESS_DOCS_SOURCE: ${{ inputs.business_docs_source }}
+        BUSINESS_DOC_REFS: ${{ inputs.business_doc_refs }}
+        BUSINESS_DOCS_MODE: ${{ inputs.business_docs_mode }}
+        CONFLUENCE_BASE_URL: ${{ inputs.confluence_base_url }}
+        CONFLUENCE_USERNAME: ${{ inputs.confluence_username }}
+        CONFLUENCE_API_TOKEN: ${{ inputs.confluence_api_token }}
+        CONFLUENCE_OUTPUT_FORMAT: ${{ inputs.confluence_output_format }}
         SOURCE_BRANCH: ${{ github.head_ref }}
         TARGET_BRANCH: ${{ github.base_ref }}
         GITHUB_TOKEN: ${{ inputs.github_token }}

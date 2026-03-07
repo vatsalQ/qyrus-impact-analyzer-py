@@ -55,6 +55,7 @@ jobs:
           environment_name:  ${{ secrets.ENVIRONMENT_NAME }}
           username:          ${{ secrets.USERNAME }}
           password:          ${{ secrets.PASSWORD }}
+          api_token:         ${{ secrets.QAPI_API_TOKEN }}
 ```
 
 Pin to `@v2` (major) or to a specific tag/SHA for reproducible builds.
@@ -73,6 +74,15 @@ Pin to `@v2` (major) or to a specific tag/SHA for reproducible builds.
 | `environment_name` | ❌        | Environment name (required if using workspace mode)                          |
 | `username`         | ❌        | Workspace username (required if using workspace mode)                        |
 | `password`         | ❌        | Workspace password (required if using workspace mode)                        |
+| `api_token`        | ❌        | Qyrus API token (alternative to `password` in workspace mode)                |
+| `business_docs_enabled` | ❌   | Enable business-document semantic context (`true` / `false`, default `false`) |
+| `business_docs_source`  | ❌   | Business-doc source (default `confluence`)                                   |
+| `business_doc_refs`     | ❌   | JSON array of business document references                                   |
+| `business_docs_mode`    | ❌   | `reference_only` or `semantic_validation` (default `semantic_validation`)    |
+| `confluence_base_url`   | ❌   | Confluence base URL (required when semantic context is enabled with Confluence) |
+| `confluence_username`   | ❌   | Confluence username/email (required when semantic context is enabled with Confluence) |
+| `confluence_api_token`  | ❌   | Confluence API token (required when semantic context is enabled with Confluence) |
+| `confluence_output_format` | ❌ | `storage`, `clean`, or `markdown` (default `markdown`)                      |
 
 ---
 
@@ -92,18 +102,50 @@ If `contents:read` is missing, the Action stops immediately with
 
 ## 🛠 Secrets to set
 
-| secret             | example value                        |
-| ------------------ | ------------------------------------ |
-| `IMPACT_API_URL`   | `https://stg-gateway.qyrus.com/impact-analyzer-py/` |
-| `API_ACCESS_TOKEN` | `glpat-123456-abcdef`                |
-| `PROJECT_ID`       | `34jfe-abce03-`                      |
-| `WORKSPACE_NAME`   | `my_workspace`                        |
-| `SUITE_NAME`       | `regression_suite`                     |
-| `ENVIRONMENT_NAME` | `staging_env`                          |
-| `USERNAME`         | `workspace_user`                       |
-| `PASSWORD`         | `workspace_password`                   |
+| secret                 | example value                                |
+| ---------------------- | -------------------------------------------- |
+| `IMPACT_API_URL`       | `https://stg-gateway.qyrus.com/impact-analyzer-py/` |
+| `API_ACCESS_TOKEN`     | `glpat-123456-abcdef`                        |
+| `PROJECT_ID`           | `34jfe-abce03-`                              |
+| `WORKSPACE_NAME`       | `my_workspace`                               |
+| `SUITE_NAME`           | `regression_suite`                           |
+| `ENVIRONMENT_NAME`     | `staging_env`                                |
+| `USERNAME`             | `workspace_user`                             |
+| `PASSWORD`             | `workspace_password`                         |
+| `QAPI_API_TOKEN`       | `qyrus_api_token`                            |
+| `CONFLUENCE_BASE_URL`  | `https://your-domain.atlassian.net/wiki`    |
+| `CONFLUENCE_USERNAME`  | `user@company.com`                           |
+| `CONFLUENCE_API_TOKEN` | `atlassian-api-token`                        |
 
+## Semantic context usage (Confluence)
 
+```yaml
+- uses: vatsalQ/qyrus-impact-analyzer-py@v4
+  with:
+    impact_api_url:      ${{ secrets.IMPACT_API_URL }}
+    api_access_token:    ${{ secrets.API_ACCESS_TOKEN }}
+    project_id:          ${{ secrets.PROJECT_ID || '' }}
+    workspace_name:      ${{ secrets.WORKSPACE_NAME }}
+    suite_name:          ${{ secrets.SUITE_NAME }}
+    environment_name:    ${{ secrets.ENVIRONMENT_NAME }}
+    username:            ${{ secrets.USERNAME }}
+    api_token:           ${{ secrets.QAPI_API_TOKEN }}
+    github_token:        ${{ secrets.GIT_TOKEN }}
+    business_docs_enabled: "true"
+    business_docs_source: "confluence"
+    business_docs_mode: "semantic_validation"
+    business_doc_refs: >
+      [
+        { "type": "confluence", "page_title": "Refund Workflow v3" },
+        { "type": "confluence", "page_id": "123456789" }
+      ]
+    confluence_base_url: ${{ secrets.CONFLUENCE_BASE_URL }}
+    confluence_username: ${{ secrets.CONFLUENCE_USERNAME }}
+    confluence_api_token: ${{ secrets.CONFLUENCE_API_TOKEN }}
+    confluence_output_format: "markdown"
+```
+
+When `business_docs_enabled` is `true`, the action forwards a `business_context` block to the dispatcher. For `business_docs_source: confluence`, `confluence_base_url`, `confluence_username`, and `confluence_api_token` are required.
 
 ## 📋 Troubleshooting
 
